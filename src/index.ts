@@ -1,35 +1,51 @@
-import { Hono } from 'hono'
-import {convertToBase64, getAiResponse} from "./utils";
-import { RequestType } from './types';
+import { Hono } from "hono";
+import { convertToBase64, getAiResponse } from "./utils";
+import { RequestType } from "./types";
+import { cors } from "hono/cors";
 
 type Bindings = {
-  API_KEY: string
-}
+  API_KEY: string;
+};
 
-const app = new Hono<{Bindings: Bindings}>()
+const app = new Hono<{ Bindings: Bindings }>();
 
-app.post('/run', async (c) => {
+app.use(
+  "/",
+  cors({
+    origin: [
+      "https://ideavault.us.kg/",
+      "http://ideavault.us.kg/",
+      "https://www.ideavault.us.kg/",
+      "http://www.ideavault.us.kg/",
+      "https://d22bt1me2zb0xr.cloudfront.net",
+      "http://d22bt1me2zb0xr.cloudfront.net",
+    ],
+  })
+);
+
+app.post("/run", async (c) => {
   const formdata = await c.req.formData();
   const image = formdata.get("image");
   const type = formdata.get("type") as RequestType;
   const dict_of_vars_str = formdata.get("dict_of_vars_str") as string;
-  let base64Image:string = ""; 
-  if(!image){
+  let base64Image: string = "";
+  if (!image) {
     c.status(400);
     return c.json({
-      "message": "invalid image"
-    })
-  } 
-  else if(typeof(image) === "string"){
+      message: "invalid image",
+    });
+  } else if (typeof image === "string") {
     base64Image = image.split(",")[1];
-  } 
-  else{
+  } else {
     base64Image = await convertToBase64(image);
   }
-  const res=await getAiResponse(base64Image, c.env.API_KEY, type, dict_of_vars_str);
+  const res = await getAiResponse(
+    base64Image,
+    c.env.API_KEY,
+    type,
+    dict_of_vars_str
+  );
   return c.text(res);
 });
 
-
-
-export default app
+export default app;
